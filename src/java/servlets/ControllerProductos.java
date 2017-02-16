@@ -8,7 +8,6 @@ package servlets;
 import dao.ProductoDAO;
 import dominio.Producto;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -17,6 +16,7 @@ import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import servicios.GestorProducto;
 
 /**
  *
@@ -39,45 +39,15 @@ public class ControllerProductos extends HttpServlet {
         String opcion = request.getParameter("opcion");
         String vista = "index.html";
         ProductoDAO dao;
+        GestorProducto gestor = new GestorProducto(this, request, response);        
         switch(opcion){
             case "buscar":
-                String nombre = request.getParameter("nombre");
-                Producto producto = null;
-                try {
-                    dao = new ProductoDAO();
-                    producto = dao.findProductoByNombre(nombre);
-
-                } catch (ClassNotFoundException ex) {
-                    Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (SQLException ex) {
-                    Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
-                }
-                if(producto != null){
-                    request.setAttribute("producto", producto);
-                }
-                vista= "resultado.jsp";
+                vista= gestor.buscarProducto();
                 break;
             
             case "mostrar":
-                try {
-                    dao = new ProductoDAO();
-                    TreeSet<Producto> set = (TreeSet) dao.findAllProductos();
-                    if(set.isEmpty()){
-                        System.out.println("Error: No se ha encontrado ningun producto");
-                    }
-                    else{
-                        request.setAttribute("set", set);
-                        vista = "mostrar.jsp";
-                    }
-
-                } catch (ClassNotFoundException ex) {
-                    Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
-                } catch (SQLException ex) {
-                    Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
-                }
-                                
-                break;
-                
+                vista= gestor.mostrarProductos();
+                break;         
         }     
 
         request.getRequestDispatcher(vista).forward(request, response);
