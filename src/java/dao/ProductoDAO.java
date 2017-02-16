@@ -10,6 +10,8 @@ import dominio.exceptions.PrecioInvalidoException;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -21,6 +23,7 @@ public class ProductoDAO extends DAO{
     
     private static final String QUERY_FIND_PROD_BY_ID = "SELECT * FROM productos WHERE id= ? ";
     private static final String QUERY_FIND_PROD_BY_NOMBRE = "SELECT * FROM productos WHERE nombre= ? ";
+    private static final String QUERY_FIND_ALL_PROD = "SELECT * FROM productos";
     
     public ProductoDAO() throws ClassNotFoundException, SQLException{
         super();
@@ -67,5 +70,26 @@ public class ProductoDAO extends DAO{
         ps.close();
         
         return producto;
+    }
+    
+    public Set<Producto> findAllProductos() throws SQLException{
+        PreparedStatement ps = c.prepareStatement(QUERY_FIND_ALL_PROD);
+        TreeSet<Producto> set = new TreeSet();
+        
+        ResultSet rs = ps.executeQuery();
+        while(rs.next()){
+            int id = rs.getInt("id");
+            String nombre = rs.getString("nombre");
+            String descripcion = rs.getString("descripcion");
+            float precio = rs.getFloat("precio");
+            
+            Producto producto = new Producto(id, nombre, descripcion, precio);
+            set.add(producto);
+        }
+        
+        rs.close();
+        ps.close();
+        
+        return set;
     }
 }

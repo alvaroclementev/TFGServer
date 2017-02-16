@@ -10,6 +10,7 @@ import dominio.Producto;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.sql.SQLException;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletException;
@@ -34,24 +35,52 @@ public class ControllerProductos extends HttpServlet {
      */
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.setContentType("text/html;charset=UTF-8");            
-        String nombre = request.getParameter("nombre");
+        response.setContentType("text/html;charset=UTF-8");
+        String opcion = request.getParameter("opcion");
+        String vista = "index.html";
         ProductoDAO dao;
-        Producto producto = null;
-        try {
-            dao = new ProductoDAO();
-            producto = dao.findProductoByNombre(nombre);
+        switch(opcion){
+            case "buscar":
+                String nombre = request.getParameter("nombre");
+                Producto producto = null;
+                try {
+                    dao = new ProductoDAO();
+                    producto = dao.findProductoByNombre(nombre);
 
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
-        }
-        if(producto != null){
-            request.setAttribute("producto", producto);
-        }
+                } catch (ClassNotFoundException ex) {
+                    Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (SQLException ex) {
+                    Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                if(producto != null){
+                    request.setAttribute("producto", producto);
+                }
+                vista= "resultado.jsp";
+                break;
+            
+            case "mostrar":
+                try {
+                    dao = new ProductoDAO();
+                    TreeSet<Producto> set = (TreeSet) dao.findAllProductos();
+                    if(set.isEmpty()){
+                        System.out.println("Error: No se ha encontrado ningun producto");
+                    }
+                    else{
+                        request.setAttribute("set", set);
+                        vista = "mostrar.jsp";
+                    }
 
-        request.getRequestDispatcher("resultado.jsp").forward(request, response);
+                } catch (ClassNotFoundException ex) {
+                    Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
+                } catch (SQLException ex) {
+                    Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
+                }
+                                
+                break;
+                
+        }     
+
+        request.getRequestDispatcher(vista).forward(request, response);
 
     }
 

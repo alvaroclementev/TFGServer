@@ -6,12 +6,13 @@
 package dominio;
 
 import dominio.exceptions.PrecioInvalidoException;
+import java.util.Objects;
 
 /**
  *
  * @author Alvaro Clemente
  */
-public class Producto {
+public class Producto implements Comparable{
     private int id;
     private String nombre;
     private String descripcion;
@@ -66,6 +67,57 @@ public class Producto {
         }
         catch(PrecioInvalidoException e){
             e.printStackTrace();
+        }
+    }
+
+    @Override
+    public String toString() {
+        return "Producto{" + "id=" + id + ", nombre=" + nombre + ", descripcion=" + descripcion + ", precio=" + precio + '}';
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 97 * hash + this.id;
+        hash = 97 * hash + Objects.hashCode(this.nombre);
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Producto other = (Producto) obj;
+        if (this.id != other.id) {
+            return false;
+        }
+        if (!Objects.equals(this.nombre, other.nombre)) {
+            return false;
+        }
+        return true;
+    }
+
+    @Override
+    public int compareTo(Object o) {
+        if(!(o instanceof Producto)){
+            throw new ClassCastException();
+        }
+        else{
+            Producto p = (Producto) o;
+            if(this.equals(p))
+                return 0;
+            else if(this.id < p.getId())
+                return -1;
+            
+            else
+                return 1;                
         }
     }
     

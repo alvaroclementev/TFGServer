@@ -1,7 +1,7 @@
 <%-- 
     Document   : resultado
     Created on : 15-feb-2017, 14:47:59
-    Author     : Alvaro
+    Author     : Alvaro Clemente
 --%>
 <%@taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@page contentType="text/html" pageEncoding="UTF-8"%>
