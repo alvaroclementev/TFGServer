@@ -5,6 +5,7 @@
  */
 package servicios;
 
+import com.google.gson.Gson;
 import dao.ProductoDAO;
 import dominio.Producto;
 import java.sql.SQLException;
@@ -36,7 +37,7 @@ public class GestorProducto {
       HttpSession sesion = request.getSession();
       this.carrito = (Collection) sesion.getAttribute("carrito");
       if(this.carrito == null){
-          this.carrito = new ArrayList<Producto>();
+          this.carrito = new ArrayList();
           sesion.setAttribute("carrito", carrito);
           
       }
@@ -45,6 +46,29 @@ public class GestorProducto {
     }
     
     public String buscarProducto(){
+        
+        String res = "No se han encontrado productos";
+        String nombre = request.getParameter("nombre");
+        Producto producto = null;
+        ProductoDAO dao;
+        try {
+            dao = new ProductoDAO();
+            producto = dao.findProductoByNombre(nombre);
+
+        } catch (ClassNotFoundException ex) {
+            Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (SQLException ex) {
+            Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        if(producto != null){
+            Gson gson = new Gson();
+            res = gson.toJson(producto);
+        }
+        return res;
+    }
+    
+    
+    public String buscarProductoNoJSON(){
         
         String vista = "error.html";
         String nombre = request.getParameter("nombre");
@@ -66,7 +90,7 @@ public class GestorProducto {
         return vista;
     }
     
-    public String mostrarProductos(){
+    public String mostrarProductosNoJSON(){
         
         String vista = "error.html";
         try {
@@ -90,6 +114,29 @@ public class GestorProducto {
         return vista;
     }
     
+    public String mostrarProductos(){
+        
+        Gson gson = new Gson();
+        String res = "No se han encontrado productos";
+        try {            
+            ProductoDAO dao = new ProductoDAO();
+            TreeSet<Producto> set = (TreeSet) dao.findAllProductos();
+            if(set.isEmpty()){
+                System.out.println("Error: No se ha encontrado ningun producto");
+            }
+            else{
+                res = gson.toJson(set);
+                //System.out.println(res);
+            }
+
+        } catch (ClassNotFoundException ex) {
+            Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (SQLException ex) {
+            Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        return res;
+    } 
     
     
     

@@ -8,6 +8,14 @@
         <servlet-name>ControllerProductos</servlet-name>
         <url-pattern>/Productos</url-pattern>
     </servlet-mapping>
+    <servlet>
+        <servlet-name>ControllerUsuario</servlet-name>
+        <servlet-class>servlets.ControllerUsuario</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ControllerUsuario</servlet-name>
+        <url-pattern>/Usuarios</url-pattern>
+    </servlet-mapping>
     <session-config>
         <session-timeout>
             30

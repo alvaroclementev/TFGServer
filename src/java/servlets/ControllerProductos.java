@@ -8,6 +8,7 @@ package servlets;
 import dao.ProductoDAO;
 import dominio.Producto;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.sql.SQLException;
 import java.util.TreeSet;
 import java.util.logging.Level;
@@ -36,21 +37,39 @@ public class ControllerProductos extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
+        String vista = null;
         String opcion = request.getParameter("opcion");
-        String vista = "index.html";
         ProductoDAO dao;
+        String json;
         GestorProducto gestor = new GestorProducto(this, request, response);        
         switch(opcion){
             case "buscar":
-                vista= gestor.buscarProducto();
+                json = gestor.buscarProducto();
+                try (PrintWriter out = response.getWriter()) {
+                    out.println(json);
+                    out.close();
+                }
                 break;
-            
-            case "mostrar":
-                vista= gestor.mostrarProductos();
-                break;         
-        }     
 
-        request.getRequestDispatcher(vista).forward(request, response);
+            case "mostrar":
+                json = gestor.mostrarProductos();
+                try (PrintWriter out = response.getWriter()) {
+                    out.println(json);
+                    out.close();
+                }
+                break;
+
+            case "buscarNoJSON":
+                vista= gestor.buscarProductoNoJSON();
+                break;
+
+            case "NoJSON":
+                vista= gestor.mostrarProductosNoJSON();
+                break;
+        }        
+        
+        if(vista != null)
+            request.getRequestDispatcher(vista).forward(request, response);
 
     }
 
@@ -66,6 +85,7 @@ public class ControllerProductos extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
+        processRequest(request, response);
     }
 
     /**
