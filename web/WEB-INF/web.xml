@@ -9,6 +9,22 @@
         <url-pattern>/Productos</url-pattern>
     </servlet-mapping>
     <servlet>
+        <servlet-name>ControllerMesa</servlet-name>
+        <servlet-class>servlets.ControllerMesa</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ControllerMesa</servlet-name>
+        <url-pattern>/Mesas</url-pattern>
+    </servlet-mapping>
+    <servlet>
+        <servlet-name>ControllerRestaurante</servlet-name>
+        <servlet-class>servlets.ControllerRestaurante</servlet-class>
+    </servlet>
+    <servlet-mapping>
+        <servlet-name>ControllerRestaurante</servlet-name>
+        <url-pattern>/Restaurantes</url-pattern>
+    </servlet-mapping>    
+    <servlet>
         <servlet-name>ControllerUsuario</servlet-name>
         <servlet-class>servlets.ControllerUsuario</servlet-class>
     </servlet>
@@ -16,6 +32,7 @@
         <servlet-name>ControllerUsuario</servlet-name>
         <url-pattern>/Usuarios</url-pattern>
     </servlet-mapping>
+    
     <session-config>
         <session-timeout>
             30

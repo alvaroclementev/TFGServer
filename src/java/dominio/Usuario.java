@@ -9,7 +9,7 @@ package dominio;
  *
  * @author Alvaro
  */
-public class Usuario {
+public class Usuario implements Comparable<Usuario>{
     private String email;
     private String nombre;
     private String apellidos;
@@ -47,7 +47,38 @@ public class Usuario {
     public void setApellidos(String apellidos) {
         this.apellidos = apellidos;
     }
-    
+
+    @Override
+    public String toString() {
+        return "Usuario{" + "email=" + email + ", nombre=" + nombre + ", apellidos=" + apellidos + '}';
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 89 * hash + this.email.hashCode();
+        return hash;
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        final Usuario other = (Usuario) obj;
+        return this.email.equals(other.email);
+    }
+
+    @Override
+    public int compareTo(Usuario o) {
+        return this.email.compareTo(o.email);
+    }
     
     
 }

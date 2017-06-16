@@ -29,7 +29,7 @@ public class GestorUsuario {
     
     private static final String SERVER_CLIENT_ID = "318219251312-j29fp4417qqhav7c5s893m7vbl2ltb0c.apps.googleusercontent.com";
     
-    public static String login(HttpServletRequest request){
+    public static String loginGoogle(HttpServletRequest request){
         
         String result = "ID token invalido";
         Usuario usuario = null;
@@ -81,7 +81,7 @@ public class GestorUsuario {
         return result;       
     }
     
-    public static String registrar(HttpServletRequest request){
+    public static String registrarGoogle(HttpServletRequest request){
         String result = "error en registro";
         Usuario usuario = null;
         String idTokenString = request.getParameter("id_token");
