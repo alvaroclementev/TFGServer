@@ -19,7 +19,7 @@ public abstract class DAO {
     
     public DAO() throws ClassNotFoundException, SQLException{
         
-        if(c==null || c.isValid(200)){
+        if(c==null || !c.isValid(200)){
             Class.forName("com.mysql.jdbc.Driver");
             String bd = "jdbc:mysql://localhost/tfg";
             c = DriverManager.getConnection(bd, "server", "tfgserver");

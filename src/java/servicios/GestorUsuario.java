@@ -11,14 +11,21 @@ import dominio.Usuario;
 import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.gson.Gson;
 import dao.UsuarioDAO;
+import dominio.EstadoLogin;
+import dominio.Reserva;
+import dominio.Restaurante;
 import dominio.exceptions.UserAlreadyExistsException;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.sql.SQLException;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
 /**
@@ -31,14 +38,14 @@ public class GestorUsuario {
     
     public static String loginGoogle(HttpServletRequest request){
         
-        String result = "ID token invalido";
+        String result = "Error: login invalido";
         Usuario usuario = null;
         //Mirar primero si esta ya logeado desde esa sesion
         HttpSession sesion = request.getSession();
         boolean logged = (Boolean.valueOf((String) sesion.getAttribute("logged")));
         if(logged){
             //TODO GESTIONAR MULTIPLES LOGINS, PROBABLEMENTE HAYA QUE TENER UNA LISTA CON LOS USUARIOS LOGEADOS, O SE PERMITE LOGIN DESDE MULTIPLES DISPOSITIVOS?
-            result = "ya logeado";
+            result = "Error: ya logeado";
         }
         else{
             String idTokenString = request.getParameter("id_token");
@@ -65,7 +72,15 @@ public class GestorUsuario {
                     if(usuario != null){
                         sesion.setAttribute("logged", true);
                         sesion.setAttribute("usuario", usuario);
-                        result = "login OK";
+                        System.out.println("El usuario " + usuario.getEmail() + " ha iniciado sesión");
+                        
+                        //Generar y devolver el estado inicial del usuario
+                        EstadoLogin estado = generarEstado(usuario, request.getServletContext());
+                        Gson gson = new Gson();
+                        result = gson.toJson(estado);
+                        Logger.getLogger(GestorUsuario.class.getName()).log(Level.INFO, "El resultado es: " + result);
+                        System.out.println("El estado del usuario " + usuario.getEmail() + " es " + result);
+                        return result;
                     }
 
                 } catch (IOException | GeneralSecurityException ex) {
@@ -82,7 +97,7 @@ public class GestorUsuario {
     }
     
     public static String registrarGoogle(HttpServletRequest request){
-        String result = "error en registro";
+        String result = "Error en registro";
         Usuario usuario = null;
         String idTokenString = request.getParameter("id_token");
         NetHttpTransport transport = new NetHttpTransport();
@@ -113,7 +128,16 @@ public class GestorUsuario {
                         HttpSession sesion = request.getSession();
                         sesion.setAttribute("logged", true);
                         sesion.setAttribute("usuario", usuario);
-                        result = "registro completado, login ok";
+                        System.out.println("El usuario " + usuario.getEmail() + " ha iniciado sesión");
+                        
+                        
+                        //Generar y devolver el estado inicial del usuario
+                        EstadoLogin estado = generarEstado(usuario, request.getServletContext());
+                        Gson gson = new Gson();
+                        result = gson.toJson(estado);
+                        //Logger.getLogger(GestorUsuario.class.getName()).log(Level.INFO, "El resultado es: " + result);
+                        System.out.println("El estado del usuario " + usuario.getEmail() + " es " + result);
+                        return result;
                     }
                 }
                
@@ -129,6 +153,99 @@ public class GestorUsuario {
         return result;       
     }
     
+    public static String login(HttpServletRequest request){
+        String result = "Error en login";
+        try {            
+            //Check usuario y contraseña
+            String usuarioString = request.getParameter("usuario");
+            String password = request.getParameter("password");
+            if(usuarioString == null || password == null){
+                System.out.println("Error: usuario o contraseña vacio");
+                return "Error: usuario o contraseña vacio";
+            }
+            
+            //Ver si usuario existe
+            UsuarioDAO dao = new UsuarioDAO();
+            if(!dao.existsUsuario(usuarioString)){
+                System.out.println("Error: el usuario no existe");
+                return "Error: el usuario no existe";
+            }
+            
+            //Comprobar contraseña
+            if(!dao.checkPassword(usuarioString, password)){
+                System.out.println("Error: la contraseña no es correcta");
+                return "Error: La contraseña no es correcta";
+            }
+            else{
+                Usuario usuario = dao.findUsuarioByEmail(usuarioString);
+                HttpSession sesion = request.getSession();
+                sesion.setAttribute("logged", true);
+                sesion.setAttribute("usuario", usuario);
+                System.out.println("El usuario " + usuario.getEmail() + " ha iniciado sesión");
+                
+                //Generar y devolver el estado inicial del usuario
+                EstadoLogin estado = generarEstado(usuario, request.getServletContext());
+                Gson gson = new Gson();
+                result = gson.toJson(estado);
+                Logger.getLogger(GestorUsuario.class.getName()).log(Level.INFO, "El resultado es: " + result);
+                System.out.println("El estado del usuario " + usuario.getEmail() + " es " + result);
+                return result;
+            }
+            
+        } catch (ClassNotFoundException | SQLException ex ) {
+            Logger.getLogger(GestorUsuario.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return result;
+    }
+    
+    public static String registrar(HttpServletRequest request){
+        String result = "Error en registro";
+        try {            
+            //Check usuario y contraseña
+            String usuarioString = request.getParameter("usuario");
+            String password = request.getParameter("password");
+            if(usuarioString == null || password == null){
+                System.out.println("Error: usuario o contraseña vacio");
+                return "Error: usuario o contraseña vacio";
+            }
+            
+            //Ver si usuario existe
+            UsuarioDAO dao = new UsuarioDAO();
+            if(dao.existsUsuario(usuarioString)){
+                Exception e = new UserAlreadyExistsException(usuarioString);
+                System.out.println(e.toString());
+                return e.toString();
+            }           
+            else{
+                //EXITO: REGISTRANDO...
+                String nombre = request.getParameter("nombre");
+                String apellidos = request.getParameter("apellidos");
+                
+                Usuario usuario = new Usuario(usuarioString, nombre, apellidos);
+                dao.addUsuario(usuario, password);
+                
+                HttpSession sesion = request.getSession();
+                sesion.setAttribute("logged", true);
+                sesion.setAttribute("usuario", usuario);
+                System.out.println("Se ha registrado el usuario " + usuario);
+                System.out.println("El usuario " + usuario.getEmail() + " ha iniciado sesión");
+                
+                
+                //Generar y devolver el estado inicial del usuario
+                EstadoLogin estado = generarEstado(usuario, request.getServletContext());
+                Gson gson = new Gson();
+                result = gson.toJson(estado);
+                Logger.getLogger(GestorUsuario.class.getName()).log(Level.INFO, "El resultado es: " + result);
+                System.out.println("El estado del usuario " + usuario.getEmail() + " es " + result);
+                return result;
+            }
+            
+        } catch (ClassNotFoundException | SQLException ex) {
+            Logger.getLogger(GestorUsuario.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        return result;
+    }
+    
     public static String logout(HttpServletRequest request){
         String result = "error en logout";
         HttpSession sesion = request.getSession();
@@ -140,11 +257,37 @@ public class GestorUsuario {
                 sesion.setAttribute("usuario", null);
                 
                 result = "sesion cerrada correctamente";
+                System.out.println("El usuario " + usuario.getEmail() + " ha cerrado sesión");
             }
         }
         else{
             result = "no hay una sesion iniciada en esta conexion";
         }
         return result;
+    }
+    
+    public static EstadoLogin generarEstado(Usuario usuario, ServletContext contextoApp){
+        Collection<Reserva> allReservas = new TreeSet();
+        Restaurante restauranteActivo = null;
+        Reserva reservaActiva = null;
+        //Se recorren todos los restaurantes en busca de las reservas del usuario:
+        Collection<Restaurante> allRestaurantes = GestorRestaurante.findAllRestaurantes(contextoApp);
+        for(Restaurante restaurante : allRestaurantes){
+            allReservas.addAll(restaurante.getReservasFromUsuario(usuario));
+            Reserva activaRestaurante = restaurante.getReservaActivaFromUsuario(usuario);
+            if( activaRestaurante!= null){
+                if(reservaActiva == null){
+                    reservaActiva = activaRestaurante;
+                    restauranteActivo = restaurante;
+                }
+                else{
+                    System.out.println("Error: El usuario tiene dos reservas activas en dos restaurantes distintos? \nReserva 1 = " + reservaActiva + "\nReserva2 = " + activaRestaurante);
+                    return null;
+                }   
+            }
+        }
+        //Ya se tienen todas las reservas, se crea el estado
+        EstadoLogin estado = new EstadoLogin(reservaActiva, allReservas, restauranteActivo);
+        return estado;
     }
 }

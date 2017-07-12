@@ -77,7 +77,38 @@ public class Mesa implements Comparable<Mesa>{
         }
     }
     
-    public int getIdReservaAt(LocalDateTime hora){
+    public boolean isNextReservaAndFree(int idReserva){
+        /**
+         * Devuelve true si el idReserva coincide una reserva con el mismo id en este momento, o 
+         * como mucho en 20 minutos y esta libre hasta entonces
+         */
+        LocalDateTime now = LocalDateTime.now();
+        if(getIdReservaAt(now) == idReserva){
+            return true;
+        }
+        else if(getIdReservaAt(now) == 0){ 
+            //Si esta libre ahora y luego comprobamos que la reserva es nuestra no cabe ninguna
+            //otra en los proximos 20 minutos
+            if(getIdReservaAt(now.plusMinutes(10)) == idReserva){
+                return true;
+            }
+            else if(getIdReservaAt(now.plusMinutes(20)) == idReserva){
+                return true;
+            }
+            else
+                return false;
+        }
+        else{
+            //Intentalo mas tarde, la mesa esta ocupada
+            return false;
+        }
+    }
+    
+    public boolean isReservaHere(int idReserva){
+        return this.horario.isReservaHere(idReserva);
+    }
+    
+    private int getIdReservaAt(LocalDateTime hora){
         return horario.getIdReservaAt(hora);
     }
     

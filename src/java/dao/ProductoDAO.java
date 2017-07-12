@@ -23,7 +23,7 @@ public class ProductoDAO extends DAO{
     
     private static final String QUERY_FIND_PROD_BY_ID = "SELECT * FROM productos WHERE id= ? ";
     private static final String QUERY_FIND_PROD_BY_NOMBRE = "SELECT * FROM productos WHERE nombre= ? ";
-    private static final String QUERY_FIND_ALL_PROD = "SELECT * FROM productos";
+    private static final String QUERY_FIND_ALL_PROD_BY_ID = "SELECT * FROM productos WHERE restauranteId= ? ";
     
     public ProductoDAO() throws ClassNotFoundException, SQLException{
         super();
@@ -72,8 +72,9 @@ public class ProductoDAO extends DAO{
         return producto;
     }
     
-    public Set<Producto> findAllProductos() throws SQLException{
-        PreparedStatement ps = c.prepareStatement(QUERY_FIND_ALL_PROD);
+    public Set<Producto> findAllProductos(int restauranteId) throws SQLException{
+        PreparedStatement ps = c.prepareStatement(QUERY_FIND_ALL_PROD_BY_ID);
+        ps.setInt(1, restauranteId);
         TreeSet<Producto> set = new TreeSet();
         
         ResultSet rs = ps.executeQuery();

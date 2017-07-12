@@ -5,8 +5,10 @@
  */
 package dominio;
 
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.temporal.ChronoUnit;
 import java.util.LinkedList;
 import java.util.List;
@@ -28,9 +30,11 @@ public class Horario {
     private ArrayList<Integer> bloques; //booleano indicando si ese bloque esta ocupado y si lo esta qué reserva lo ha hecho
                                         //0 indica mesa libre
 
-    public Horario(LocalDateTime horaInicio, LocalDateTime horaFin, int granularidad) {
-        this.horaInicio = horaInicio;
-        this.horaFin = horaFin;
+    public Horario(String horaInicio, String horaFin, int granularidad) {
+        //Traducir la hora en string a LocalDateTime
+        this.horaInicio = Horario.stringToLocalDateTime(horaInicio);
+        this.horaFin = Horario.stringToLocalDateTime(horaFin);
+        
         this.granularidad = granularidad;
         initBloques();
         
@@ -177,6 +181,72 @@ public class Horario {
     public int getIdReservaAt(LocalDateTime hora){
         int index = this.getIndexFor(hora);
         return bloques.get(index);
+    }
+    
+    public boolean isReservaHere(int idReserva){
+        /**
+         * Devuelve true si hay una reserva con el id desde este instante hasta
+         * El final del turno
+         */
+        int indexNow = this.getIndexFor(LocalDateTime.now());
+        boolean result = false;
+        for(int i = indexNow; i<numeroBloques; i++){
+            if(bloques.get(i) == idReserva){
+                result = true;
+                break;
+            }            
+        }
+        return result;
+    }
+    
+    public static LocalDateTime stringToLocalDateTime(String hora){
+        /**
+         * parsea una hora en formato HH:mm a LocalDateTime, añadiendo la fecha de hoy
+         */
+        LocalDate hoy = LocalDate.now();
+        int[] horaInt = horaToInt(hora);
+        if(horaInt[0] == -1 || horaInt[1] == -1)
+            return null;
+        
+        LocalTime ahora = LocalTime.of(horaInt[0], horaInt[1]);
+        return LocalDateTime.of(hoy, ahora);
+    }
+    
+    public static String formatLocalDateTime(LocalDateTime localDateTime){
+        /**
+         * devuelve una hora en formato HH:mm desde una LocalDateTime
+         */
+        int hora = localDateTime.getHour();
+        int minuto = localDateTime.getMinute();
+        String horaParsed = Integer.toString(hora);
+        if(hora < 10){
+            horaParsed = "0" + horaParsed;
+        }
+        String minutoParsed = Integer.toString(minuto);
+        if(minuto < 10){
+            minutoParsed = "0" + minutoParsed;
+        }
+        String result = horaParsed + ":" + minutoParsed;
+        return result;
+    }
+    
+    public static int[] horaToInt(String hora){
+        /**
+         * Necesita la hora en formato HH:mm
+         * Devuelve la hora en un array con la hora y los minutos en forma de int
+         */
+        int[] result = new int[2];
+        String[] horaSplit = hora.split(":");
+        String horaString = horaSplit[0];
+        String minutoString = horaSplit[1];
+        try{
+            result[0] = Integer.parseInt(horaString);
+            result[1] = Integer.parseInt(minutoString);
+        } catch(NumberFormatException nfe){
+            result[0]=-1;
+            result[1]=-1;
+        }
+        return result;
     }
     
     //Getters & Setters

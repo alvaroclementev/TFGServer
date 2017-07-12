@@ -7,13 +7,13 @@ package dao;
 
 import static dao.DAO.c;
 import dominio.Mesa;
+import dominio.Restaurante;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.TreeSet;
-import servicios.GestorMesa;
 
 /**
  *
@@ -30,8 +30,8 @@ public class RestauranteDAO extends DAO{
         super();
     }
     
-    public Collection<GestorMesa> findAllRestaurantes() throws SQLException{
-        TreeSet<GestorMesa> set;
+    public Collection<Restaurante> findAllRestaurantes() throws SQLException{
+        TreeSet<Restaurante> set;
         try (PreparedStatement ps = c.prepareStatement(QUERY_FIND_ALL_RESTAURANTES)) {
             ResultSet rs = ps.executeQuery();
             set = new TreeSet();
@@ -42,22 +42,29 @@ public class RestauranteDAO extends DAO{
                 String telefono = rs.getString("telefono");
                 String descripcion = rs.getString("descripcion");
                 String categoria = rs.getString("categoria");
+                String horaInicio = rs.getString("horaInicio");
+                String horaFin = rs.getString("horaFin");
                 
-                ArrayList<Mesa> mesas = (ArrayList) findAllMesasFromRestaurante(id);
-                set.add(new GestorMesa(id, nombre, direccion, telefono, descripcion, categoria, mesas));
+                //String horario = rs.getString("horario");
+                
+                //TODO añadir horario
+                set.add(new Restaurante(id, nombre, direccion, telefono, descripcion, categoria, horaInicio, horaFin));
             }
         }
         
         return set;
     }
     
-    public GestorMesa findRestauranteById(int id) throws SQLException{
+    public Restaurante findRestauranteById(int id) throws SQLException{
         ResultSet rs;
         String nombre;
         String direccion;
         String telefono;
         String descripcion;
         String categoria;
+        String horaInicio;
+        String horaFin;
+        
         try (PreparedStatement ps = c.prepareStatement(QUERY_FIND_RESTAURANTE_BY_ID)) {
             ps.setInt(1, id);
             rs = ps.executeQuery();
@@ -66,24 +73,29 @@ public class RestauranteDAO extends DAO{
             telefono = null;
             descripcion = null;
             categoria = null;
+            horaInicio = null;
+            horaFin = null;
             while(rs.next()){
                 nombre = rs.getString("nombre");
                 direccion = rs.getString("direccion");
                 telefono = rs.getString("telefono");
                 descripcion = rs.getString("descripcion");
                 categoria = rs.getString("categoria");
+                horaInicio = rs.getString("horaInicio");
+                horaFin = rs.getString("horaFin");
                 
             }   rs.close();
         }
-        
-        ArrayList<Mesa> mesas = (ArrayList<Mesa>) findAllMesasFromRestaurante(id);
-        
-        GestorMesa restaurante = new GestorMesa(id, nombre, direccion, telefono, descripcion, categoria, mesas);
+        //TODO añadir horario
+        Restaurante restaurante = new Restaurante(id, nombre, direccion, telefono, descripcion, categoria, horaInicio, horaFin);
              
         return restaurante;
     }
     
-    public GestorMesa findRestauranteByName(String nombre) throws SQLException{
+    public Restaurante findRestauranteByName(String nombre) throws SQLException{
+        /**
+         * Devuelve el primer restaurante con que coincida con el nombre
+         */
         int id;
         try (PreparedStatement ps = c.prepareStatement(QUERY_FIND_RESTAURANTE_BY_ID)) {
             ps.setString(1, nombre);
@@ -91,6 +103,7 @@ public class RestauranteDAO extends DAO{
             id = -1;
             while(rs.next()){            
                 id = rs.getInt("id");
+                break;
             }
         }
         if(id != -1)
@@ -102,16 +115,16 @@ public class RestauranteDAO extends DAO{
     
     public Collection<Mesa> findAllMesasFromRestaurante(int id) throws SQLException {
         ArrayList<Mesa> mesas;
-        try (PreparedStatement ps2 = c.prepareStatement(QUERY_FIND_MESAS_BY_RESTAURANTE_ID)) {
-            ps2.setInt(1, id);
-            ResultSet rs2 = ps2.executeQuery();
+        try (PreparedStatement ps = c.prepareStatement(QUERY_FIND_MESAS_BY_RESTAURANTE_ID)) {
+            ps.setInt(1, id);
+            ResultSet rs = ps.executeQuery();
             mesas = new ArrayList();
-            while(rs2.next()){
-                int mesaId = rs2.getInt("id");
-                int maxComensales = rs2.getInt("maxComensales");
+            while(rs.next()){
+                int mesaId = rs.getInt("id");
+                int maxComensales = rs.getInt("maxComensales");
                 Mesa mesa = new Mesa(mesaId, maxComensales);
                 mesas.add(mesa);
-            }   rs2.close();
+            }   rs.close();
         }
         return mesas;
     }

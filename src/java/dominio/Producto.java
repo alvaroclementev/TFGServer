@@ -95,13 +95,7 @@ public class Producto implements Comparable{
             return false;
         }
         final Producto other = (Producto) obj;
-        if (this.id != other.id) {
-            return false;
-        }
-        if (!Objects.equals(this.nombre, other.nombre)) {
-            return false;
-        }
-        return true;
+        return this.id == other.getId();
     }
 
     @Override
@@ -111,13 +105,7 @@ public class Producto implements Comparable{
         }
         else{
             Producto p = (Producto) o;
-            if(this.equals(p))
-                return 0;
-            else if(this.id < p.getId())
-                return -1;
-            
-            else
-                return 1;                
+            return this.id - p.getId();              
         }
     }
     

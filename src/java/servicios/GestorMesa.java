@@ -9,12 +9,12 @@ import com.google.gson.Gson;
 import dao.RestauranteDAO;
 import dominio.Horario;
 import dominio.Mesa;
+import dominio.Pedido;
 import dominio.Reserva;
+import dominio.Restaurante;
 import dominio.Usuario;
 import java.sql.SQLException;
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.Instant;
@@ -22,7 +22,9 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.TreeSet;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.ServletContext;
@@ -33,80 +35,32 @@ import javax.servlet.http.HttpSession;
  *
  * @author Alvaro
  */
-public class GestorMesa implements Comparable<GestorMesa>{
-    /** Clase que representa un restaurante 
-     * 
-     */
-    private final int id;
-    private final String nombre;
-    private final String direccion;
-    private final String telefono;
-    private final String descripcion;
-    private final String categoria;
-    
-    private final ArrayList<Mesa> mesas;
+public class GestorMesa {
+    /** 
+     * Clase que representa un restaurante 
+     */  
+    private final int restauranteId; 
     private Horario horario;
+ 
+    private LinkedList<Mesa> mesas;
+    private ArrayList<Reserva> reservas;
+    private ArrayList<Reserva> reservasActivas;
     
-    private final ArrayList<Reserva> reservas;
-    private final ArrayList<Reserva> reservasActivas;
+    private final HashSet<Integer> solicitudesCamarero;
+    
     private int nextReservaId = 1;
     
-    //No Singleton
-    
-    public GestorMesa(int id, String nombre, String direccion, String telefono, String descripcion, String categoria, ArrayList<Mesa> mesas, ArrayList<Reserva> reservas, ArrayList<Reserva> reservasActivas, Horario horario) {
-        this.id = id;
-        this.nombre = nombre;
-        this.direccion = direccion;
-        this.telefono = telefono;
-        this.descripcion = descripcion;
-        this.categoria = categoria;
-        this.mesas = mesas;
-        this.reservas = reservas;
-        this.reservasActivas = reservasActivas;
-        this.horario = horario;
-    }
 
-    public GestorMesa(int id, String nombre, String direccion, String telefono, String descripcion, String categoria, ArrayList<Mesa> mesas) {
-        this.id = id;
-        this.nombre = nombre;
-        this.direccion = direccion;
-        this.telefono = telefono;
-        this.descripcion = descripcion;
-        this.categoria = categoria;
-        this.mesas = mesas;
-        this.reservas = new ArrayList();
-        this.reservasActivas = new ArrayList();
+    public GestorMesa(int restauranteId, String horaInicio, String horaFin, int granularidad){
+        this.restauranteId = restauranteId;
+        this.horario = new Horario(horaInicio, horaFin, granularidad);
+        this.solicitudesCamarero = new HashSet();
+        
+        initMesas();
+        initReservas();
     }
-
-    public GestorMesa(int id, String nombre, String direccion, String telefono, String descripcion, String categoria, ArrayList<Mesa> mesas, Horario horario) {
-        this.id = id;
-        this.nombre = nombre;
-        this.direccion = direccion;
-        this.telefono = telefono;
-        this.descripcion = descripcion;
-        this.categoria = categoria;
-        this.mesas = mesas;
-        this.horario = horario;
-        this.reservas = new ArrayList();
-        this.reservasActivas = new ArrayList();
-    }
-    
-
-    public GestorMesa(int id, String nombre, String direccion, String telefono, String descripcion, String categoria) {
-        this.id = id;
-        this.nombre = nombre;
-        this.direccion = direccion;
-        this.telefono = telefono;
-        this.descripcion = descripcion;
-        this.categoria = categoria;
-        this.mesas = new ArrayList();
-        this.reservas = new ArrayList();
-        this.reservasActivas = new ArrayList();
-    }
-    
-    //FIXME: MIGRAR A LOCALTIME (SI NO NECESITAMOS FECHA... SOLO RESERVAS DEL MISMO DIA?)
-    //FIXME: ASOCIAR LA MESA AL RESTAURANTE SELECCIONADO
-    public String reservarMesa(HttpServletRequest request){
+               
+    public String reservarMesa(HttpServletRequest request, Restaurante selectedRestaurante){
         //Parametros: mesaId(int); hora(String);
         //Atributos: usuario(Usuario);
         
@@ -135,15 +89,9 @@ public class GestorMesa implements Comparable<GestorMesa>{
             if(horaString == null){
                 return "Error, hora no encontrada";
             }
-            System.out.println("La hora parseada es: " + horaString);
-            String[] horaSplit = horaString.split(":");
-            int horaInt = Integer.parseInt(horaSplit[0]);
-            int minutosInt = Integer.parseInt(horaSplit[1]);
-            LocalDate date = LocalDate.now();
-            LocalTime horaParsed = LocalTime.of(horaInt, minutosInt);
-                        
+            System.out.println("La hora parseada es: " + horaString);                        
             //Cuidado con la zona horaria, esto coge la zona del sistema, que puede ir cambiando
-            LocalDateTime hora = LocalDateTime.of(date, horaParsed);
+            LocalDateTime hora = Horario.stringToLocalDateTime(horaString);
                         
             //Si todo ha ido bien, reservar la mesa:
             if(mesa.isDisponibleAt(hora)){
@@ -155,7 +103,8 @@ public class GestorMesa implements Comparable<GestorMesa>{
                     //TODO: AÑADIR PERSISTENCIA DE RESERVAS FUTURAS! (EN BASE DE DATOS)
                     //RESERVA CORRECTA
                     Long millis = ZonedDateTime.of(hora, ZoneId.systemDefault()).toInstant().toEpochMilli();
-                    Reserva reserva = new Reserva(this.getId(), nextReservaId, mesa, millis, this.getNombre(), horaString);
+                    
+                    Reserva reserva = new Reserva(selectedRestaurante.getId(), nextReservaId, mesa, millis, selectedRestaurante.getNombre(), horaString);
                     reserva.addComensal(usuario);
                     nextReservaId++;
                     Gson gson = new Gson();
@@ -180,7 +129,7 @@ public class GestorMesa implements Comparable<GestorMesa>{
         return message;        
     }
     
-    public String sentarEnMesa(HttpServletRequest request){
+    public String sentarEnMesa(HttpServletRequest request, Restaurante selectedRestaurante){
         String message;
         //int result = gestor.reservarMesa(mesa, usuario, LocalDateTime.MAX);
         try{
@@ -238,7 +187,7 @@ public class GestorMesa implements Comparable<GestorMesa>{
                     String horaString = horaParsed + ":" + minutoParsed;
                     
                     //Añadir reserva
-                    Reserva reserva = new Reserva(this.getId(), nextReservaId, mesa, millis, this.getNombre(), horaString);
+                    Reserva reserva = new Reserva(selectedRestaurante.getId(), nextReservaId, mesa, millis, selectedRestaurante.getNombre(), horaString);
                     reserva.addComensal(usuario);
                     nextReservaId++;
                     
@@ -259,16 +208,16 @@ public class GestorMesa implements Comparable<GestorMesa>{
         return message;   
     }
     
-    public String sentarEnReservada(HttpServletRequest request){
+    public String sentarEnReservada(HttpServletRequest request, Restaurante selectedRestaurante){
         String message;
         //int result = gestor.reservarMesa(mesa, usuario, LocalDateTime.MAX);
         try{
              //Encuentra la reserva 
             int reservaId = Integer.parseInt(request.getParameter("reservaId"));
-            Reserva reserva = findReserva(new Reserva(this.getId(), reservaId));
+            Reserva reserva = findReserva(new Reserva(selectedRestaurante.getId(), reservaId));
             if(reserva == null){
-                System.out.println("Error: La reserva con reserva id " + reservaId + " no existe en el restaurante " + this.nombre);
-                message = "Error: La reserva con reserva id " + reservaId + " no existe en el restaurante " + this.nombre;
+                System.out.println("Error: La reserva con reserva id " + reservaId + " no existe en el restaurante " + selectedRestaurante.getNombre());
+                message = "Error: La reserva con reserva id " + reservaId + " no existe en el restaurante " + selectedRestaurante.getNombre();
                 return message;
             }
             
@@ -296,16 +245,27 @@ public class GestorMesa implements Comparable<GestorMesa>{
             
             //Comprobar la reserva a esa hora en la mesa
             Mesa mesa = reserva.getMesa();
-            if(mesa.getIdReservaAt(LocalDateTime.now()) != reservaId){
+            if(mesa.isReservaHere(reservaId)){
+                if(mesa.isNextReservaAndFree(reservaId)){
+                    //RESERVA ENCONTRADA--> ACTIVAR RESERVA
+                    
+                    //Ver si hay Pedidos de antemano
+                    TreeSet<Pedido> antemano = new TreeSet();
+                    antemano.addAll(reserva.getPedidosAntemano());
+                    reservasActivas.add(reserva);
+                    
+                    Gson gson = new Gson();
+                    message = gson.toJson(antemano);
+                    //No hay que hacer nada en las mesas ya que no hay diferencia entre
+                    //reservar y sentarse, y la mesa ya esta reservada           
+                } else {
+                    message = "Error: Aun no puede sentarse en la mesa";
+                    System.out.println(message);
+                }
+                
+            } else{
                 return "Error: No se ha encontrado la reserva en la mesa!";
-            }
-            
-            //RESERVA ENCONTRADA--> ACTIVAR RESERVA
-            message = "Usuario sentado correctamente";
-            reservasActivas.add(reserva);
-            //No hay que hacer nada en las mesas ya que no hay diferencia entre
-            //reservar y sentarse, y la mesa ya esta reservada           
-            
+            }          
         } catch(NumberFormatException nfe){
             System.out.println("El id no es un int parseable\n"+ nfe);
             message = "Error: El id no es un int parseable";
@@ -317,22 +277,22 @@ public class GestorMesa implements Comparable<GestorMesa>{
     
     
     
-    public String levantarDeMesa(HttpServletRequest request){
+    public String levantarDeMesa(HttpServletRequest request, Restaurante selectedRestaurante){
         String message;
         
         try{
             //Encuentra la reserva 
             int reservaId = Integer.parseInt(request.getParameter("reservaId"));
-            Reserva reserva = findReserva(new Reserva(this.getId(), reservaId));
+            Reserva reserva = findReserva(new Reserva(selectedRestaurante.getId(), reservaId));
             if(reserva == null){
-                System.out.println("La reserva con reserva id " + reservaId + " no existe en el restaurante " + this.nombre);
-                message = "Error: La reserva con reserva id " + reservaId + " no existe en el restaurante " + this.nombre;
+                System.out.println("La reserva con reserva id " + reservaId + " no existe en el restaurante " + selectedRestaurante.getNombre());
+                message = "Error: La reserva con reserva id " + reservaId + " no existe en el restaurante " + selectedRestaurante.getNombre();
                 return message;
             }
             //Es una reserva activada ya?
             if(findActiva(reserva) == null){
-                System.out.println("La reserva con reserva id " + reservaId + " en el restaurante " + this.nombre + " no esta activada: El usuario no  se ha sentado");
-                message = "Error: La reserva con reserva id " + reservaId + " en el restaurante " + this.nombre + " no esta activada: El usuario no  se ha sentado";
+                System.out.println("La reserva con reserva id " + reservaId + " en el restaurante " + selectedRestaurante.getNombre() + " no esta activada: El usuario no  se ha sentado");
+                message = "Error: La reserva con reserva id " + reservaId + " en el restaurante " + selectedRestaurante.getNombre() + " no esta activada: El usuario no  se ha sentado";
                 return message;
             }
             
@@ -360,7 +320,6 @@ public class GestorMesa implements Comparable<GestorMesa>{
                 mesa.levantar(usuario, reservaId);
                 message = "Usuario levantado correctamente";
                 
-                removeReserva(reserva);
                 removeActiva(reserva);
             }
             
@@ -373,7 +332,7 @@ public class GestorMesa implements Comparable<GestorMesa>{
         return message;   
     }
     
-    public String cancelarReserva(HttpServletRequest request){
+    public String cancelarReserva(HttpServletRequest request, Restaurante selectedRestaurante){
         String message;
         
         String reservaIdString = request.getParameter("reservaId");
@@ -384,9 +343,9 @@ public class GestorMesa implements Comparable<GestorMesa>{
         try {
             
             int reservaId = Integer.parseInt(reservaIdString);
-            Reserva reserva = findReserva(new Reserva(this.getId(), reservaId));
+            Reserva reserva = findReserva(new Reserva(selectedRestaurante.getId(), reservaId));
             if(reserva == null){
-                message = "Error: No se ha encontrado la reserva " + reservaIdString + " en el restaurante " + this.getId();
+                message = "Error: No se ha encontrado la reserva " + reservaIdString + " en el restaurante " + selectedRestaurante.getId();
                 System.out.println(message);
                 return message;
             }
@@ -405,7 +364,7 @@ public class GestorMesa implements Comparable<GestorMesa>{
             
             //Es una reserva activada ya?
             if(findActiva(reserva) != null){
-                message = "Error: La reserva con reserva id " + reservaId + " en el restaurante " + this.nombre + " ya esta activada: El usuario no puede cancelarla";
+                message = "Error: La reserva con reserva id " + reservaId + " en el restaurante " + selectedRestaurante.getNombre() + " ya esta activada: El usuario no puede cancelarla";
                 System.out.println(message);
                 return message;
             }
@@ -428,12 +387,12 @@ public class GestorMesa implements Comparable<GestorMesa>{
         
         
     }
-    
-    public String mostrarMesas(){
+       
+    public String mostrarMesas(Restaurante selectedRestaurante){
         if(mesas.isEmpty()){
             try {
                 RestauranteDAO dao = new RestauranteDAO();
-                mesas.addAll(dao.findAllMesasFromRestaurante(id));
+                mesas.addAll(dao.findAllMesasFromRestaurante(selectedRestaurante.getId()));
             } catch (SQLException | ClassNotFoundException ex) {
                 Logger.getLogger(GestorMesa.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -443,6 +402,8 @@ public class GestorMesa implements Comparable<GestorMesa>{
         
         return result;
     }
+    
+    
     
     public String mostrarHorasDisponibles(HttpServletRequest request){
         String message;
@@ -470,6 +431,87 @@ public class GestorMesa implements Comparable<GestorMesa>{
         
         return message;
     }
+    
+    public Collection<Reserva> getReservasFromUsuario(Usuario usuario){
+        Collection<Reserva> allReservas = new HashSet();
+        for(Reserva reserva : this.reservas){
+            if(reserva.getComensales().contains(usuario)){
+                allReservas.add(reserva);
+            }
+        }
+        
+        return allReservas;
+    }
+    
+    public Reserva getReservaActivaFromUsuario(Usuario usuario){
+        Reserva result = null;
+        for(Reserva reserva : this.reservasActivas){
+            if(reserva.getComensales().contains(usuario)){
+                result = reserva;
+                break;
+            }
+        }
+        
+        return result;
+    }
+    
+    public String hacerPedido(HttpServletRequest request){
+        String message;
+        
+        try{
+            //Encuentra el pedido
+            int pedidoId = Integer.parseInt(request.getParameter("pedidoId"));
+            //Saca el array de Productos de la request
+            String arrayToParse = request.getParameter("pedidos");
+            System.out.println(arrayToParse);          
+            
+            //message = this.gestorPedidos.hacerPedido(pedidoId);
+            message = "Hello";         
+        }catch(NumberFormatException nfe){
+            System.out.println("El id del pedido no es un int parseable\n"+ nfe);
+            message = "Error: El id del pedido no es un int parseable";
+            return message;
+        }
+        
+        
+        return message;
+    }
+    
+    public String solicitarCamarero(HttpServletRequest request){
+        String mesaString = request.getParameter("mesaId");
+        if(mesaString == null){
+            System.out.println("Error: No se ha encontrado el id de la mesa");
+            return "Error: No se ha encontrado el id de la mesa";
+        }
+        try{
+            int mesaId = Integer.parseInt(mesaString);
+            Mesa mesa = findMesa(mesaId);
+            if(mesa == null){
+                System.out.println("Error: No se ha encontrado la mesa");
+                return "Error: No se ha encontrado la mesa";
+            }
+            Usuario usuario = (Usuario) request.getSession().getAttribute("usuario");
+            if(usuario == null){
+                System.out.println("No esta la sesion iniciada");
+                return "Error: No esta la sesion iniciada";
+            }
+            else if(!mesa.getComensales().contains(usuario)){
+                System.out.println("El usuario no esta asociado a esta mesa");
+                return "Error: El usuario no esta asociado a esta mesa";
+            }
+            else{
+                //TODO: Ver que hacer con esta información
+                solicitudesCamarero.add(mesaId);
+                System.out.println("Se ha solicitado un camarero para la mesa " + mesaId);
+                return "Camarero solicitado con éxito";
+            }
+            
+        } catch(NumberFormatException nfe){
+            Logger.getLogger(GestorMesa.class.getName()).log(Level.SEVERE, null, nfe);
+            return "Error: no se ha podido parsear la id de la mesa";
+        }
+                
+    }
      
     public Mesa findMesa(int id){
         Mesa result = null;
@@ -486,7 +528,26 @@ public class GestorMesa implements Comparable<GestorMesa>{
         
         return result;
     }
-      
+    
+    private void initMesas(){
+        try {
+                this.mesas = new LinkedList();
+                RestauranteDAO dao = new RestauranteDAO();
+                mesas.addAll(dao.findAllMesasFromRestaurante(this.restauranteId));
+                
+                setHorarioAllMesas(this.horario);
+                
+            } catch (SQLException | ClassNotFoundException ex) {
+                Logger.getLogger(GestorMesa.class.getName()).log(Level.SEVERE, null, ex);
+            }
+    }
+    
+    private void initReservas(){
+        //FIXME conseguir las reservas de la persistencia (cuando la haya)
+        this.reservas = new ArrayList();
+        this.reservasActivas = new ArrayList();
+    }
+    
     public String mesaToString(int mesaId){
         return mesas.get(mesaId).toString();
     }
@@ -523,13 +584,17 @@ public class GestorMesa implements Comparable<GestorMesa>{
     
     public void removeActiva(Reserva reserva){
         this.reservasActivas.remove(reserva);
+        removeReserva(reserva);
     }
     
     public void clearActiva(){
         this.reservasActivas.clear();
     }
+
+    public int getRestauranteId() {
+        return restauranteId;
+    }   
     
-    //TODO: Programar persistencia de las mesas en la base de datos
     public Horario getHorario() {
         return horario;
     }
@@ -544,40 +609,7 @@ public class GestorMesa implements Comparable<GestorMesa>{
             mesa.setHorario(new Horario(horario));
         }
     }
-
-    public int getId() {
-        return id;
-    }
-
-    public String getNombre() {
-        return nombre;
-    }
-
-    public String getDireccion() {
-        return direccion;
-    }
-
-    public String getTelefono() {
-        return telefono;
-    }
     
-    public ArrayList<Mesa> getMesas() {
-        return mesas;
-    }
-
-    public String getDescripcion() {
-        return descripcion;
-    }
-
-    public String getCategoria() {
-        return categoria;
-    }
-    
-    @Override
-    public int compareTo(GestorMesa o) {
-        return this.id - o.getId();
-    }
-
     public Reserva findReserva(Reserva reserva) {
         Reserva res = null;
         for(Reserva r : this.reservas){
@@ -585,7 +617,6 @@ public class GestorMesa implements Comparable<GestorMesa>{
                 res = r;
                 break;
             }             
-            
         }
         return res;
     }
@@ -614,5 +645,17 @@ public class GestorMesa implements Comparable<GestorMesa>{
         }
         
         return set;
+    }
+
+    public ArrayList<Reserva> getReservas() {
+        return reservas;
+    }
+
+    public ArrayList<Reserva> getReservasActivas() {
+        return reservasActivas;
+    }
+
+    public HashSet<Integer> getSolicitudesCamarero() {
+        return solicitudesCamarero;
     }
 }

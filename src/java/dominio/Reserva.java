@@ -5,7 +5,18 @@
  */
 package dominio;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonSyntaxException;
+import com.google.gson.annotations.Expose;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.TreeSet;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
+import servicios.GestorPedido;
+import servlets.ControllerPedidos;
 
 /**
  *
@@ -20,7 +31,9 @@ public class Reserva implements Comparable<Reserva>{
     private long hora;
     private String restauranteName;
     private String horaString;
-    //private Pedido pedido;
+    
+    @Expose(serialize = false)
+    private GestorPedido gestorPedido = new GestorPedido();
 
     public Reserva(int restauranteId, int reservaId, TreeSet<Usuario> comensales, Mesa mesa, long hora, String restauranteName, String horaString) {
         this.restauranteId = restauranteId;
@@ -47,6 +60,139 @@ public class Reserva implements Comparable<Reserva>{
         this.reservaId = reservaId;
     }
     
+    //Funcionalidades
+    
+    public String hacerPedido(HttpServletRequest request, Restaurante selectedRestaurante){
+        String message;
+        
+        //Ver usuario que hace la reserva
+        HttpSession sesion = request.getSession();
+        Usuario usuario = (Usuario) sesion.getAttribute("usuario");
+        if(usuario == null){
+            return "Error, el usuario no ha iniciado sesion";
+        }
+        if(!comensales.contains(usuario)){
+            return "Error, el usuario no forma parte de esta reserva!";
+        }
+        
+        String pedidoRequest = request.getParameter("pedido");
+        if(pedidoRequest == null){
+            return "Error: no se ha encontrado el pedido en la request";
+            
+        }
+        System.out.println("El JSON del pedido recibido es: " + pedidoRequest);
+        Gson gson = new Gson();
+        try{
+            //El pedido que llega es una collection de Productos 
+            ArrayList<Producto> productos = gson.fromJson(pedidoRequest, ArrayList.class);
+            if(productos == null || productos.isEmpty()){
+                return "Error: no se ha recibido ningun producto!";
+            }
+            //TODO CORRECTO, SE AÑADE EL PEDIDO
+            //Coger los comentarios del pedido
+            String comentarios = request.getParameter("comentarios");
+                        
+            String horaPedido = request.getParameter("hora");
+            if(horaPedido == null)
+                horaPedido = "-1"; //Lo antes posible
+            Pedido pedido = new Pedido(selectedRestaurante.getNextPedidoId(), selectedRestaurante.getId(), getMesa().getId(), usuario, horaPedido, comentarios);
+            System.out.println("Se ha confirmado el pedido " + pedido);
+            pedido.addProductos(productos);
+            gestorPedido.addToPendientes(pedido);
+            selectedRestaurante.addToHistorial(pedido);
+            message = gson.toJson(pedido);
+            
+        } catch(JsonSyntaxException ex){
+            message = "Error: No se ha podido parsear el pedido";
+            Logger.getLogger(ControllerPedidos.class.getName()).log(Level.SEVERE, null, ex);
+            
+        }
+        return message;
+    }
+    
+    public String checkout(HttpServletRequest request, Restaurante selectedRestaurante){
+        String message;
+        //Necesitas la reserva y con eso tienes todo
+        //Ver usuario que hace la reserva
+        HttpSession sesion = request.getSession();
+        Usuario usuario = (Usuario) sesion.getAttribute("usuario");
+        if(usuario == null){
+            return "Error, el usuario no ha iniciado sesion";
+        }
+        if(!comensales.contains(usuario)){
+            return "Error, el usuario no forma parte de esta reserva!";
+        }
+        
+        //Comprobar que no hay pagos pendientes
+        //FIXME: AÑADIR FUNCIONALIDAD DE PAGAR, AHORA MISMO PAGA TODO AUTOMATICAMENTE
+        gestorPedido.pagarPendientes(gestorPedido.getPendientes());
+        
+        //SE HACE EL CHECKOUT
+        if(!gestorPedido.getPendientes().isEmpty()){
+            return "Error: aun hay pagos pendientes";
+        }
+        //EXITO
+        return "Checkout terminado con éxito";
+    }
+    
+    public String pedidoFuturo(HttpServletRequest request, Restaurante selectedRestaurante){
+        String message;
+        
+        //Ver usuario que hace la reserva
+        HttpSession sesion = request.getSession();
+        Usuario usuario = (Usuario) sesion.getAttribute("usuario");
+        if(usuario == null){
+            return "Error, el usuario no ha iniciado sesion";
+        }
+        if(!comensales.contains(usuario)){
+            return "Error, el usuario no forma parte de esta reserva!";
+        }
+        
+        String pedidoRequest = request.getParameter("pedido");
+        if(pedidoRequest == null){
+            return "Error: no se ha encontrado el pedido en la request";
+            
+        }
+        System.out.println("El JSON del pedido recibido es: " + pedidoRequest);
+        Gson gson = new Gson();
+        try{
+            //El pedido que llega es una collection de Productos 
+            ArrayList<Producto> productos = gson.fromJson(pedidoRequest, ArrayList.class);
+            if(productos == null || productos.isEmpty()){
+                return "Error: no se ha recibido ningun producto!";
+            }
+            //Coger los comentarios del pedido
+            String comentarios = request.getParameter("comentarios");
+                        
+            String horaPedido = request.getParameter("hora");
+            if(horaPedido == null){
+                return "Error: no hay una hora especificada";
+            }  
+            //TODO CORRECTO, SE AÑADE EL PEDIDO         
+            Pedido pedido = new Pedido(selectedRestaurante.getNextPedidoId(), selectedRestaurante.getId(), getMesa().getId(), usuario, horaPedido, comentarios);
+            pedido.addProductos(productos);
+            gestorPedido.addToPendientes(pedido);
+            selectedRestaurante.addToHistorial(pedido);
+            message = "Pedido registrado correctamente";
+            
+        } catch(JsonSyntaxException ex){
+            message = "Error: No se ha podido parsear el pedido";
+            Logger.getLogger(ControllerPedidos.class.getName()).log(Level.SEVERE, null, ex);
+            
+        }
+        return message;
+    }
+    
+    //Metodos para pedidos
+    public void addPedido(Pedido pedido){
+        gestorPedido.addToPendientes(pedido);
+    }
+    
+    public Collection<Pedido> getPedidosAntemano(){
+        return gestorPedido.getPendientes();
+    }
+    
+    //Getters & Setters
     public int getRestauranteId() {
         return restauranteId;
     }
@@ -114,12 +260,12 @@ public class Reserva implements Comparable<Reserva>{
     public boolean isComensal(Usuario comensal){
         return this.comensales.contains(comensal);
     }
-    
+
     @Override
     public String toString() {
-        return "Reserva{" + "restauranteId=" + restauranteId + ", reservaId=" + reservaId + ", comensales=" + comensales + ", mesa=" + mesa + ", hora=" + hora + ", restauranteName=" + restauranteName + ", horaString=" + horaString + '}';
-    }
-    
+        return "Reserva{" + "restauranteId=" + restauranteId + ", reservaId=" + reservaId + ", comensales=" + comensales + ", mesa=" + mesa + ", hora=" + hora + ", restauranteName=" + restauranteName + ", horaString=" + horaString + ", gestorPedido=" + gestorPedido + '}';
+    }   
+        
     @Override
     public int hashCode() {
         int hash = 5;

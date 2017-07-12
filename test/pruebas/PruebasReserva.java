@@ -82,7 +82,7 @@ public class PruebasReserva {
         LocalTime horaFin = LocalTime.of(23, 30);
         LocalDateTime dateTimeInicio = LocalDateTime.of(hoy, horaInicio);
         LocalDateTime dateTimeFin = LocalDateTime.of(hoy, horaFin);
-        Horario horario = new Horario(dateTimeInicio, dateTimeFin, 10);
+        /*Horario horario = new Horario(dateTimeInicio, dateTimeFin, 10);
         System.out.println("Antes: " + horario.getHorasLibres());
         
         LocalTime horaReserva = LocalTime.of(20,0);
@@ -94,7 +94,7 @@ public class PruebasReserva {
         horario.eliminarReserva(1);
         System.out.println("Eliminada: " + horario.getHorasLibres());
         horario.reservarAt(LocalDateTime.now(), 2);
-        System.out.println("Despues: " + horario.getHorasLibres());
+        System.out.println("Despues: " + horario.getHorasLibres());*/
         
         
     }

@@ -6,43 +6,26 @@ and open the template in the editor.
 -->
 <html>
     <head>
-        <title>Inicio TFG</title>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <link rel="stylesheet" href="css/bootstrap.min.css">
-        <script src="js/bootstrap.min.js"></script>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+        <title>Indice</title>
         <script src="js/jquery-3.1.1.min.js"></script>
+        <script src="js/bootstrap.min.js"></script>
+        <script src="js/control.js"></script>
     </head>
     <body>
-        <div style="margin-left: 40%; margin-top: 10%">Buscar un Producto
-            <div>
-                <form action="Productos" method="post">
-                    Nombre del Producto:<br>
-                    <input type="text" name="nombre" placeholder="Inserta un nombre"><br>
-                    <input type="submit" value="Buscar">
-                    <input type="text" name="opcion" value="buscar" style="display: none">
-                </form>
+        <div class="container">
+            <div class="jumbotron">
+                <h1>WaitLess</h1>
             </div>
-        </div>
-        <div style="margin-left: 40%; margin-top: 10%">
-            <form action="Productos" method="post">
-                Mostrar todos los productos:<br>
-                <input type="submit" value="Mostrar">
-                <input type="text" name="opcion" value="mostrar" style="display: none">
-            </form>
-        </div>
-        <div style="margin-left: 40%; margin-top: 10%">
-            <form action="Productos" method="post">
-                Mostrar todos los productos sin JSON:<br>
-                <input type="submit" value="Mostrar">
-                <input type="text" name="opcion" value="NoJSON" style="display: none">
-            </form>
-        </div>
-        <div style="margin-left: 20%; margin-top: 10%">
-            <form action="Productos" method="post">
-                Mostrar todos los productos sin JSON:<br>
-                <input type="submit" value="Mostrar">
-                <input type="text" name="opcion" value="NoJSON" style="display: none">
+            
+            <form action="PaneldeControl">
+                <div class="form-group">
+                    <label for="selectedRestauranteId">Introduce el restaurante</label>
+                    <input type="hidden" class="form-control" name="opcion" value="">
+                    <input type="text" class="form-control" id="selectedRestauranteId" name="selectedRestauranteId">
+                </div>
+                <button type="submit" class="btn btn-default">Panel de Control</button>
             </form>
         </div>
     </body>

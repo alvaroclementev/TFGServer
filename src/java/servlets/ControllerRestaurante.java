@@ -5,12 +5,8 @@
  */
 package servlets;
 
-import dominio.Horario;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import javax.servlet.ServletContext;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
@@ -38,17 +34,6 @@ public class ControllerRestaurante extends HttpServlet {
         response.setContentType("text/html;charset=UTF-8");
         //Inicializa un horario por defecto (Testing) si no esta hecho ya
         ServletContext contextoApp = getServletContext();
-        Horario defaultHorario = (Horario) contextoApp.getAttribute("defaultHorario");
-        if(defaultHorario == null){
-            LocalDate hoy = LocalDate.now();
-            LocalTime horaInicio = LocalTime.of(8, 30);
-            LocalTime horaFin = LocalTime.of(23, 30);
-            LocalDateTime defaultInicio = LocalDateTime.of(hoy, horaInicio);
-            LocalDateTime defaultFin = LocalDateTime.of(hoy, horaFin);
-            defaultHorario = new Horario(defaultInicio, defaultFin, 10);
-            
-            contextoApp.setAttribute("defaultHorario", defaultHorario);
-        }
         
         try (PrintWriter out = response.getWriter()) {
             String opcion = request.getParameter("opcion");

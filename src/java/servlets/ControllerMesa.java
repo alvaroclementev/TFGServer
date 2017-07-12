@@ -5,14 +5,13 @@
  */
 package servlets;
 
+import dominio.Restaurante;
 import java.io.IOException;
 import java.io.PrintWriter;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import servicios.GestorMesa;
 import servicios.GestorRestaurante;
 
 /**
@@ -36,37 +35,27 @@ public class ControllerMesa extends HttpServlet {
                 
         try{
             PrintWriter out = response.getWriter();
+            Restaurante selectedRestaurante;
             String opcion = request.getParameter("opcion");
             switch(opcion){
                 case "mostrar":
-                    HttpSession session = request.getSession();
-                    GestorMesa selectedRestaurante = (GestorMesa) session.getAttribute("selectedRestaurante");
-                    if(selectedRestaurante == null){
-                        System.out.println("Se ha entrado aqui");
-                        //Se mira si la ha pasado en la request, que significa que
-                        //Solo esta mirando
-                        if(request.getParameter("selectedRestauranteId") == null){
-                            out.write("Error: no hay un restaurante seleccionado");
-                        }
-                        else{
-                            int id = Integer.parseInt(request.getParameter("selectedRestauranteId"));
-                            selectedRestaurante = GestorRestaurante.findRestaurante(id, request);
-                            if(selectedRestaurante == null){
-                                System.out.println("Error: no se ha encontrado el restaurante con id = " + id);
-                                out.write("Error: no se ha encontrado el restaurante con id = " + id);
-                            }
-                            else{
-                                String result = selectedRestaurante.mostrarMesas();
-                                System.out.println(result);
-                                out.write(result);
-                            }
-                        }
+                    if(request.getParameter("selectedRestauranteId") == null){
+                        out.write("Error: no hay un restaurante seleccionado");
                     }
                     else{
-                        String result = selectedRestaurante.mostrarMesas();
-                        System.out.println(result);
-                        out.write(result);
+                        int id = Integer.parseInt(request.getParameter("selectedRestauranteId"));
+                        selectedRestaurante = GestorRestaurante.findRestaurante(id, request);
+                        if(selectedRestaurante == null){
+                            System.out.println("Error: no se ha encontrado el restaurante con id = " + id);
+                            out.write("Error: no se ha encontrado el restaurante con id = " + id);
+                        }
+                        else{
+                            String result = selectedRestaurante.mostrarMesas();
+                            System.out.println(result);
+                            out.write(result);
+                        }
                     }
+
                     break;
                 case "reservar":
                     try{
@@ -202,6 +191,31 @@ public class ControllerMesa extends HttpServlet {
                     }
 
                     break;
+                    
+                case "solicitarCamarero":
+                    //Necesita restauranteId y mesaId
+                    try{
+                        String selectedRestauranteId = request.getParameter("selectedRestauranteId");
+                        if(selectedRestauranteId == null){
+                            out.write("Error: no hay un restaurante seleccionado");
+                        }
+                        else{
+                            selectedRestaurante = GestorRestaurante.findRestaurante(Integer.parseInt(selectedRestauranteId), request);
+                            if(selectedRestaurante == null){
+                                out.write("Error: no se ha encontrado el restaurante seleccionado");
+                            }
+                            else{
+                                String result = selectedRestaurante.solicitarCamarero(request);
+                                out.write(result);
+                            }
+                        }
+                        
+                    } catch(NumberFormatException nfe){
+                        System.out.println("Error: El id no es un int parseable\n"+ nfe);
+                        out.write("Error: El id no es un int parseable");
+                    }
+                    break;
+                    
                 default:
                     System.out.println("Error: Opcion desconocida");
                     out.write("Error: Opcion desconocida");

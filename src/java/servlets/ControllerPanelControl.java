@@ -5,25 +5,22 @@
  */
 package servlets;
 
-import dao.ProductoDAO;
-import dominio.Producto;
+import dominio.Restaurante;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.sql.SQLException;
-import java.util.TreeSet;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.servlet.ServletException;
+import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import servicios.GestorProducto;
+import servicios.GestorRestaurante;
 
 /**
  *
  * @author Alvaro
  */
-public class ControllerProductos extends HttpServlet {
+@WebServlet(name = "ControllerPanelControl", urlPatterns = {"/PaneldeControl"})
+public class ControllerPanelControl extends HttpServlet {
 
     /**
      * Processes requests for both HTTP <code>GET</code> and <code>POST</code>
@@ -37,40 +34,44 @@ public class ControllerProductos extends HttpServlet {
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         response.setContentType("text/html;charset=UTF-8");
-        String vista = null;
-        String opcion = request.getParameter("opcion");
-        ProductoDAO dao;
-        String json;
-        GestorProducto gestor = new GestorProducto(this, request, response);        
-        switch(opcion){
-            case "buscar":
-                json = gestor.buscarProducto();
-                try (PrintWriter out = response.getWriter()) {
-                    out.println(json);
-                    out.close();
-                }
-                break;
-
-            case "mostrar":
-                json = gestor.mostrarProductos();
-                try (PrintWriter out = response.getWriter()) {
-                    out.println(json);
-                    out.close();
-                }
-                break;
-
-            case "buscarNoJSON":
-                vista= gestor.buscarProductoNoJSON();
-                break;
-
-            case "NoJSON":
-                vista= gestor.mostrarProductosNoJSON();
-                break;
-        }        
-        
-        if(vista != null)
-            request.getRequestDispatcher(vista).forward(request, response);
-
+        try (PrintWriter out = response.getWriter()) {
+            String selectedRestauranteString = request.getParameter("selectedRestauranteId");
+            int selectedRestauranteId = Integer.parseInt(selectedRestauranteString);
+            
+            Restaurante restaurante = GestorRestaurante.findRestaurante(selectedRestauranteId, request);
+            request.setAttribute("restaurante", restaurante);
+            
+            String opcion= request.getParameter("opcion");
+            if(opcion == null){
+                opcion = "";
+            }
+            switch(opcion){                
+                case "actualizar":
+                    
+                    //Primero coger las mesas
+                    String mesas = restaurante.mostrarMesas();
+                    
+                    //Coger las reservas
+                    String reservas = restaurante.mostrarReservas();
+                    //Coger las activas
+                    String reservasActivas = restaurante.mostrarReservasActivas();
+                    
+                    //Coger los pedidos
+                    String productos = restaurante.mostrarPedidos();
+                    
+                    //Coger solicitudes
+                    String solicitudes = restaurante.mostrarSolicitudesCamarero();
+                    
+                    String respuesta = '[' + mesas + ", " + reservas + ", " + reservasActivas + ", " + productos +  ", " + solicitudes + ']';
+                    out.write(respuesta);
+                    break;
+                
+                case "":
+                    //Mostrar
+                    request.getRequestDispatcher("panelcontrol.jsp").forward(request, response);           
+            }
+           
+        }
     }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">

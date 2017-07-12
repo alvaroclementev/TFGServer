@@ -7,7 +7,7 @@ package servicios;
 
 import com.google.gson.Gson;
 import dao.RestauranteDAO;
-import dominio.Horario;
+import dominio.Restaurante;
 import java.sql.SQLException;
 import java.util.Collection;
 import java.util.HashMap;
@@ -17,59 +17,28 @@ import java.util.logging.Logger;
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpSession;
-import servlets.ControllerProductos;
 
 /**
  *
  * @author Alvaro
  */
-public class GestorRestaurante {
-
-    private static GestorRestaurante instance;
-    
-    public static GestorRestaurante getInstance() {
-        if(instance == null){
-            instance = new GestorRestaurante();
-        }
-        return instance;
-    }
-    
-    private GestorRestaurante(){}
-    
+public abstract class GestorRestaurante {
+   
     public static String mostrarRestaurantes(ServletContext contextoApp){
         Gson gson = new Gson();
         String res = "No se han encontrado restaurantes";
-        try {     
-            //Lista de Restaurantes deberia estar cacheada
-            HashMap<Integer, GestorMesa> restaurantesMap = (HashMap) contextoApp.getAttribute("restaurantesMap");
-            if(restaurantesMap == null){
-                restaurantesMap = new HashMap();
-                RestauranteDAO dao = new RestauranteDAO();
-                TreeSet<GestorMesa> set = (TreeSet) dao.findAllRestaurantes();
-                
-                Horario defaultHorario = (Horario) contextoApp.getAttribute("defaultHorario");
-                System.out.println("Inicializando Horario por defecto con horario =  " + defaultHorario);
-                for(GestorMesa restaurante : set){
-                    //FIXME: Por ahora inicializamos el horario con el por defecto
-                    //Se pasa una copia del horario, para que sea independiente en los distintos restaurantes
-                    restaurante.setHorario(new Horario(defaultHorario));
-                    restaurantesMap.put(restaurante.getId(), restaurante);
-                }
-                contextoApp.setAttribute("restaurantesMap", restaurantesMap);
-            }
-            Collection<GestorMesa> values = restaurantesMap.values();
-            if(values.isEmpty()){
-                System.out.println("Error: No se ha encontrado ningun restaurante");
-            }
-            else{
-                res = gson.toJson(values);
-                //System.out.println(res);
-            }
-
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
+        //Lista de Restaurantes deberia estar cacheada
+        HashMap<Integer, Restaurante> restaurantesMap = (HashMap) contextoApp.getAttribute("restaurantesMap");
+        if(restaurantesMap == null){
+            restaurantesMap = initRestauranteMap(contextoApp);
+        }
+        Collection<Restaurante> values = restaurantesMap.values();
+        if(values.isEmpty()){
+            System.out.println("Error: No se ha encontrado ningun restaurante");
+        }
+        else{
+            res = gson.toJson(values);
+            //System.out.println(res);
         }
         
         return res;
@@ -80,61 +49,65 @@ public class GestorRestaurante {
         String res = "No se han encontrado el restaurante";
         HttpSession sesion = request.getSession();
         ServletContext contextoApp = sesion.getServletContext();
-        try {     
-            //Lista de Restaurantes deberia estar cacheada
-            HashMap<Integer, GestorMesa> restaurantesMap = (HashMap) contextoApp.getAttribute("restaurantesMap");
-            if(restaurantesMap == null){
-                restaurantesMap = new HashMap();
-                RestauranteDAO dao = new RestauranteDAO();
-                TreeSet<GestorMesa> set = (TreeSet) dao.findAllRestaurantes();
-                for(GestorMesa restaurante : set){
-                    restaurantesMap.put(restaurante.getId(), restaurante);
-                }
-                contextoApp.setAttribute("restaurantesMap", restaurantesMap);
+        //Lista de Restaurantes deberia estar cacheada
+        HashMap<Integer, Restaurante> restaurantesMap = (HashMap) contextoApp.getAttribute("restaurantesMap");
+        if(restaurantesMap == null){
+            restaurantesMap = initRestauranteMap(contextoApp);
+        }
+        if(restaurantesMap.isEmpty()){
+            System.out.println("Error: No se ha encontrado ningun restaurante");
+        }
+        else{
+            Restaurante restaurante = restaurantesMap.get(id);
+            if(restaurante!= null){
+                System.out.println("El restaurante " + restaurante.getId() + " tiene un horario = " + restaurante.getGestorMesa().getHorario());
+                res = gson.toJson(restaurante);
+                sesion.setAttribute("selectedRestaurante", restaurante);
             }
-            if(restaurantesMap.isEmpty()){
-                System.out.println("Error: No se ha encontrado ningun restaurante");
-            }
-            else{
-                GestorMesa restaurante = restaurantesMap.get(id);
-                if(restaurante!= null){
-                    System.out.println("El restaurante " + restaurante.getId() + " tiene un horario = " + restaurante.getHorario());
-                    res = gson.toJson(restaurante);
-                    sesion.setAttribute("selectedRestaurante", restaurante);
-                }
-                
-                //System.out.println(res);
-            }
-
-        } catch (ClassNotFoundException ex) {
-            Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SQLException ex) {
-            Logger.getLogger(ControllerProductos.class.getName()).log(Level.SEVERE, null, ex);
+            
+            //System.out.println(res);
         }
         
         return res;
     }
     
-    public static GestorMesa findRestaurante(int id, HttpServletRequest request){
+    public static Restaurante findRestaurante(int id, HttpServletRequest request){
         //Mira si el restaurante esta cacheado
-        HttpSession sesion = request.getSession();
-        ServletContext contextoApp = sesion.getServletContext();
+        ServletContext contextoApp = request.getServletContext();
         
-        HashMap<Integer, GestorMesa> restaurantesMap = (HashMap) contextoApp.getAttribute("restaurantesMap");
+        HashMap<Integer, Restaurante> restaurantesMap = (HashMap) contextoApp.getAttribute("restaurantesMap");
+        //Lista de Restaurantes deberia estar cacheada
         if(restaurantesMap == null){
-            try {
-                restaurantesMap = new HashMap();
-                RestauranteDAO dao = new RestauranteDAO();
-                TreeSet<GestorMesa> set = (TreeSet) dao.findAllRestaurantes();
-                for(GestorMesa restaurante : set){
-                    restaurantesMap.put(restaurante.getId(), restaurante);
-                }
-                contextoApp.setAttribute("restaurantesMap", restaurantesMap);
-            } catch (ClassNotFoundException | SQLException ex) {
-                Logger.getLogger(GestorRestaurante.class.getName()).log(Level.SEVERE, null, ex);
-            }
+            restaurantesMap = initRestauranteMap(contextoApp);
         }
-        GestorMesa res = restaurantesMap.get(id);
+        Restaurante res = restaurantesMap.get(id);
         return res;
     }
+    
+    public static Collection<Restaurante> findAllRestaurantes(ServletContext contextoApp){
+        HashMap<Integer, Restaurante> restaurantesMap = (HashMap) contextoApp.getAttribute("restaurantesMap");
+        //Lista de Restaurantes deberia estar cacheada
+        if(restaurantesMap == null){
+            restaurantesMap = initRestauranteMap(contextoApp);
+        }
+        return restaurantesMap.values();
+    }
+    
+    private static HashMap<Integer, Restaurante> initRestauranteMap(ServletContext contextoApp){
+        
+        HashMap<Integer, Restaurante> restaurantesMap = new HashMap();
+        try {
+            RestauranteDAO dao = new RestauranteDAO();
+            TreeSet<Restaurante> set = (TreeSet) dao.findAllRestaurantes();
+            for(Restaurante restaurante : set){
+                restaurantesMap.put(restaurante.getId(), restaurante);
+            }
+            contextoApp.setAttribute("restaurantesMap", restaurantesMap);
+        } catch (ClassNotFoundException | SQLException ex) {
+            Logger.getLogger(GestorRestaurante.class.getName()).log(Level.SEVERE, null, ex);
+        }
+        
+        return restaurantesMap;
+    }
+   
 }

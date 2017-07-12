@@ -5,12 +5,14 @@
         <group>
             <file>file:/C:/Users/Alvaro/Google%20Drive/TFG/TFG/src/java/dominio/Mesa.java</file>
             <file>file:/C:/Users/Alvaro/Google%20Drive/TFG/TFG/src/java/servlets/ControllerRestaurante.java</file>
+            <file>file:/C:/Users/Alvaro/Google%20Drive/TFG/TFG/src/java/dao/DAO.java</file>
             <file>file:/C:/Users/Alvaro/Google%20Drive/TFG/TFG/src/java/servicios/GestorMesa.java</file>
+            <file>file:/C:/Users/Alvaro/Google%20Drive/TFG/TFG/src/java/dao/RestauranteDAO.java</file>
             <file>file:/C:/Users/Alvaro/Google%20Drive/TFG/TFG/src/java/servlets/ControllerMesa.java</file>
-            <file>file:/C:/Users/Alvaro/Google%20Drive/TFG/TFG/src/java/servicios/GestorRestaurante.java</file>
             <file>file:/C:/Users/Alvaro/Google%20Drive/TFG/TFG/src/java/dominio/Reserva.java</file>
             <file>file:/C:/Users/Alvaro/Google%20Drive/TFG/TFG/src/java/dominio/Horario.java</file>
-            <file>file:/C:/Users/Alvaro/Google%20Drive/TFG/TFG/src/java/dominio/Usuario.java</file>
+            <file>file:/C:/Users/Alvaro/Google%20Drive/TFG/TFG/src/java/servicios/GestorRestaurante.java</file>
+            <file>file:/C:/Users/Alvaro/Google%20Drive/TFG/TFG/src/java/servicios/GestorUsuario.java</file>
         </group>
     </open-files>
 </project-private>

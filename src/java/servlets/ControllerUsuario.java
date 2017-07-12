@@ -35,39 +35,38 @@ public class ControllerUsuario extends HttpServlet {
             /* TODO output your page here. You may use following sample code. */                    
             String opcion = request.getParameter("opcion");
             String output = null;
-            if(opcion != null){
-                switch(opcion){
-                    case "loginGoogle":
-                        output = GestorUsuario.loginGoogle(request);
-                        out.write(output);
-                        break;
-                   
-                    case "registroGoogle":
-                        output = GestorUsuario.registrarGoogle(request);
-                        out.write(output);
-                        break;
-                        
-                    case "login":
-                        
-                        break;
-                        
-                    case "registro":
-                        
-                        break;
-                        
-                    case "logout":
-                        output = GestorUsuario.logout(request);
-                        out.write(output);
-                        break;
-                    default:
-                        
-                        break;
-                }
-                if(opcion.equals("login")){
-                    
-                }
+            switch(opcion){
+                case "loginGoogle":
+                    output = GestorUsuario.loginGoogle(request);
+                    out.write(output);
+                    break;
+
+                case "registroGoogle":
+                    output = GestorUsuario.registrarGoogle(request);
+                    out.write(output);
+                    break;
+
+                case "login":
+                    output = GestorUsuario.login(request);
+                    out.write(output);
+                    break;
+
+                case "registro":
+                    output = GestorUsuario.registrar(request);
+                    out.write(output);
+                    break;
+
+                case "logout":
+                    output = GestorUsuario.logout(request);
+                    out.write(output);
+                    break;
+                default:
+
+                    break;
             }
+            out.close();
         }
+        
     }
 
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
